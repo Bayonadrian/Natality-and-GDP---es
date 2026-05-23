@@ -3,7 +3,7 @@ library(bslib)
 library(htmltools)
 library(plotly)
 
-page_navbar(
+ui <- page_navbar(
   title = "Natalidad, crecimiento economico y corrupcion",
   
   theme = bs_theme(
@@ -22,34 +22,20 @@ page_navbar(
     "Introduccion",
     
     layout_sidebar(
-      sidebar =  sidebar(
+      sidebar = sidebar(
         accordion(
           accordion_panel(
             title = "Informacion General",
             icon = icon("info"),
-            actionButton(
-              "members_page", 
-              "Miembros",
-              icon = icon("people-group")
-              ),
+            actionButton("members_page", "Miembros", icon = icon("people-group")),
             br(),
-            actionButton(
-              "thesis_page", 
-              "Tesis",
-              icon =icon("lightbulb")
-              ),
+            actionButton("thesis_page", "Tesis", icon = icon("lightbulb")),
             br(),
-            actionButton(
-              "metadata_page", 
-              "Metadata",
-              icon = icon("hammer")
-              )
-          ),
-        ),
+            actionButton("metadata_page", "Metadata", icon = icon("hammer"))
+          )
+        )
       ),
-      card(
-        uiOutput("introduction")
-      )
+      card(uiOutput("introduction"))
     )
   ),
   
@@ -65,11 +51,12 @@ page_navbar(
             
             selectInput(
               "countries",
-              "Selecciona país(es):",
+              "Selecciona pais(es):",
               choices = sort(unique(replacement_rate_countries$name)),
               selected = sort(unique(replacement_rate_countries$name))[1],
               multiple = TRUE
             ),
+            
             sliderInput(
               "year",
               "Año:",
@@ -79,36 +66,30 @@ page_navbar(
               step = 1,
               sep = ""
             ),
+            
             br(),
-            downloadButton(
-              "download_replacement_data",
-              "Descargar datos por pais"
-            ),
+            downloadButton("download_replacement_data", "Descargar datos por pais"),
             br(),
-            downloadButton(
-              "download_continent_data",
-            )
+            downloadButton("download_continent_data", "Descargar datos por continente")
           )
         )
       ),
+      
       tagList(
         layout_columns(
           col_widths = c(6, 6),
           gap = "20px",
           
           card(
-            card_header("Evaluación de la natalidad"),
+            card_header("Evaluacion de la natalidad"),
             card_body(
               layout_columns(
                 col_widths = c(8, 4),
                 
-                plotlyOutput(
-                  "natality_evaluation",
-                  height = "330px"
-                ),
+                plotlyOutput("natality_evaluation", height = "330px"),
                 
                 card(
-                  card_header("Promedio Recomendado por la ONU"),
+                  card_header("Promedio recomendado por la ONU"),
                   card_body(
                     tags$div(
                       textOutput("natality_text"),
@@ -119,19 +100,16 @@ page_navbar(
                 )
               ),
               
-              plotlyOutput(
-                "natality_evaluation_countries",
-                height = "360px"
-              )
+              plotlyOutput("natality_evaluation_countries", height = "360px")
             ),
             style = "height: 780px;"
           ),
           
           card(
-            card_header("Correlación con crecimiento del PBI"),
+            card_header("Correlacion con crecimiento del PBI"),
             card_body(
               card(
-                card_header("Correlación"),
+                card_header("Correlacion"),
                 card_body(
                   tags$div(
                     textOutput("corr_text"),
@@ -141,10 +119,7 @@ page_navbar(
                 style = "height: 160px; margin-bottom: 20px;"
               ),
               
-              plotlyOutput(
-                "natality_correlation_gdp",
-                height = "560px"
-              )
+              plotlyOutput("natality_correlation_gdp", height = "560px")
             ),
             style = "height: 780px;"
           )
@@ -158,12 +133,71 @@ page_navbar(
     
     layout_sidebar(
       sidebar = sidebar(
-        checkboxInput("mostrar", "Mostrar resumen", TRUE)
+        accordion(
+          accordion_panel(
+            title = tagList(icon("sliders"), "Filtros"),
+            value = "controls",
+            
+            selectInput(
+              "corruption_countries",
+              "Selecciona pais(es):",
+              choices = sort(unique(corruption$name)),
+              selected = sort(unique(corruption$name))[1],
+              multiple = TRUE
+            ),
+            
+            sliderInput(
+              "corruption_year",
+              "Año:",
+              min = 2012,
+              max = 2023,
+              value = 2023,
+              step = 1,
+              sep = ""
+            ),
+            
+            br(),
+            downloadButton("download_corruption_data", "Descargar datos de corrupcion")
+          )
+        )
       ),
       
-      card(
-        card_header("Datos"),
-        tableOutput("tabla")
+      tagList(
+        layout_columns(
+          col_widths = c(6, 6),
+          gap = "20px",
+          
+          card(
+            card_header("Promedio de corrupcion"),
+            card_body(
+              tags$div(
+                textOutput("corruption_mean_text"),
+                style = "font-size: 55px; font-weight: bold; text-align: center; padding-top: 80px;"
+              )
+            ),
+            style = "height: 250px;"
+          ),
+          
+          card(
+            card_header("Desviacion standard de corrupcion"),
+            card_body(
+              tags$div(
+                textOutput("corruption_sd_text"),
+                style = "font-size: 55px; font-weight: bold; text-align: center; padding-top: 80px;"
+              )
+            ),
+            style = "height: 250px;"
+          )
+        ),
+        
+        br(),
+        
+        card(
+          card_header("Corrupcion por pais"),
+          card_body(
+            plotlyOutput("corruption_evaluation_countries", height = "500px")
+          )
+        )
       )
     )
   ),

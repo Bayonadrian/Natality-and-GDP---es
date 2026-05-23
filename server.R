@@ -1,29 +1,29 @@
-unpivot_data = function(df) {
-  date_range = as.character(2012:2023)
+library(shiny)
+library(dplyr)
+library(tidyr)
+library(lubridate)
+library(plotly)
+
+unpivot_data <- function(df) {
+  date_range <- as.character(2012:2023)
   
-  data <- df %>%
+  df %>%
     pivot_longer(
       cols = all_of(date_range),
       names_to = "year",
       values_to = "value"
     ) %>%
-    mutate(
-      year = ymd(paste0(year, "-01-01"))
-    )
-  
-  return(data)
+    mutate(year = ymd(paste0(year, "-01-01")))
 }
 
 cast_date <- function(df) {
-  data <- df %>%
+  df %>%
     mutate(year = ymd(paste0(year, "-01-01")))
-  
-  return(data)
 }
 
-introduction = function(input, output, session) {
+introduction <- function(input, output, session) {
   
-  content = reactiveVal("crew")
+  content <- reactiveVal("crew")
   
   observeEvent(input$members_page, {
     content("crew")
@@ -37,7 +37,7 @@ introduction = function(input, output, session) {
     content("metadata")
   })
   
-  output$introduction = renderUI({
+  output$introduction <- renderUI({
     if (content() == "crew") {
       tagList(
         h3("Miembros"),
@@ -56,37 +56,43 @@ introduction = function(input, output, session) {
         p("El presente trabajo plantea 2 ideas principales:"),
         tags$ul(
           tags$li("1. La natalidad es inversamente proporcional al crecimiento economico"),
-          tags$li("2. La corrupcion es directamente proporcional al crecimiento economico"),
-        ),
-        p("A su vez tambien presenta la sugerencia de estudiar el futuro economico de paises y regiones en base a la natialidad presente.")
+          tags$li("2. La corrupcion es directamente proporcional al crecimiento economico")
+        )
       )
     } else {
       tagList(
         h3("Metadata"),
-        h4("Librerias")
+        h4("Librerias"),
+        tags$ul(
+          tags$li("shiny"),
+          tags$li("bslib"),
+          tags$li("plotly"),
+          tags$li("dplyr"),
+          tags$li("tidyr"),
+          tags$li("lubridate")
+        )
       )
     }
   })
-  
 }
 
-natality = function(input, output, session) {
+natality <- function(input, output, session) {
   
-  filtered_data_countries= reactive({
+  filtered_data_countries <- reactive({
     req(input$countries)
     
     replacement_rate_countries %>%
       filter(name %in% input$countries)
   })
   
-  filtered_correlation= reactive({
+  filtered_correlation <- reactive({
     req(input$year)
     
     replacement_rate_countries_gdp %>%
       filter(year %in% input$year)
-  }) 
+  })
   
-  output$natality_correlation_gdp= renderPlotly({
+  output$natality_correlation_gdp <- renderPlotly({
     data_plot <- filtered_correlation() %>%
       arrange(value.x)
     
@@ -97,18 +103,18 @@ natality = function(input, output, session) {
       type = "scatter",
       mode = "markers",
       color = ~name.x
-    )  %>%
+    ) %>%
       layout(
         title = "Natalidad y PBI per capita",
-        paper_bgcolor = "transparent", 
+        paper_bgcolor = "transparent",
         plot_bgcolor = "transparent",
         font = list(color = "#547A95"),
         xaxis = list(title = "Natalidad"),
-        yaxis = list(title = "GDP per capita")
+        yaxis = list(title = "PBI per capita")
       )
   })
-  output$natality_evaluation_countries= renderPlotly({
-    
+  
+  output$natality_evaluation_countries <- renderPlotly({
     plot_ly(
       data = filtered_data_countries(),
       x = ~year,
@@ -117,11 +123,11 @@ natality = function(input, output, session) {
       color = ~name
     ) %>%
       layout(
-        title = "Tasa de reemplazo por país",
+        title = "Tasa de reemplazo por pais",
         xaxis = list(title = "Año"),
         yaxis = list(title = "Hijos por mujer"),
-        paper_bgcolor = "transparent", 
-        plot_bgcolor = "transparent", 
+        paper_bgcolor = "transparent",
+        plot_bgcolor = "transparent",
         font = list(color = "#547A95"),
         template = "plotly_dark",
         shapes = list(
@@ -136,24 +142,25 @@ natality = function(input, output, session) {
         )
       )
   })
-  output$natality_evaluation = renderPlotly({
+  
+  output$natality_evaluation <- renderPlotly({
     plot_ly(
       data = replacement_rate_continents,
       x = ~year,
       y = ~value,
       type = "bar",
       color = ~name,
-      colors = c("#C2A56D", "#547A95", "#57595B", "#2C3947") 
+      colors = c("#C2A56D", "#547A95", "#57595B", "#2C3947")
     ) %>%
       layout(
         title = "Tasa de reemplazo por continente",
         xaxis = list(title = "Año"),
         yaxis = list(title = "Hijos por mujer"),
-        paper_bgcolor = "transparent", 
-        plot_bgcolor = "transparent", 
+        paper_bgcolor = "transparent",
+        plot_bgcolor = "transparent",
         font = list(color = "#547A95"),
-        template = "plotly_dark",         
-        shapes = list(                    
+        template = "plotly_dark",
+        shapes = list(
           list(
             type = "line",
             x0 = as.character(min(replacement_rate_continents$year)),
@@ -165,10 +172,10 @@ natality = function(input, output, session) {
         )
       )
   })
-  output$natality_text= renderText(
-    "2.1"
-  )
-  output$corr_text= output$corr_text <- renderText({
+  
+  output$natality_text <- renderText("2.1")
+  
+  output$corr_text <- renderText({
     corr <- cor(
       filtered_correlation()$value.x,
       filtered_correlation()$value.y,
@@ -177,42 +184,98 @@ natality = function(input, output, session) {
     
     as.character(round(corr, 3))
   })
+  
   output$download_replacement_data <- downloadHandler(
     filename = function() {
       "replacement_rate_gdp.csv"
     },
-    
     content = function(file) {
-      write.csv(
-        replacement_rate_countries_gdp,
-        file,
-        row.names = FALSE
-      )
+      write.csv(replacement_rate_countries_gdp, file, row.names = FALSE)
     }
   )
+  
   output$download_continent_data <- downloadHandler(
     filename = function() {
       "replacement_rate_continents.csv"
     },
-    
     content = function(file) {
-      write.csv(
-        replacement_rate_continents,
-        file,
-        row.names = FALSE
-      )
+      write.csv(replacement_rate_continents, file, row.names = FALSE)
     }
   )
-  #outputOptions(output, "natality_text", suspendWhenHidden = FALSE)
-  #outputOptions(output, "corr_text", suspendWhenHidden = FALSE)
-  outputOptions(output, "natality_evaluation", suspendWhenHidden = FALSE)
-  #outputOptions(output, "natality_correlation_gdp", suspendWhenHidden = FALSE)
-  #outputOptions(output, "natality_evaluation_countries", suspendWhenHidden = FALSE)
 }
 
-function(input, output, session) {
+corruption_dashboard <- function(input, output, session) {
   
-  introduction(input = input, output = output, session = session)
-  natality(input = input, output = output, session = session)
+  filtered_corruption_countries <- reactive({
+    req(input$corruption_countries)
+    
+    corruption %>%
+      filter(name %in% input$corruption_countries)
+  })
   
+  filtered_corruption_year <- reactive({
+    req(input$corruption_year)
+    req(input$corruption_countries)
+    
+    corruption %>%
+      filter(
+        year %in% input$corruption_year,
+        name %in% input$corruption_countries
+      )
+  })
+  
+  output$corruption_mean_text <- renderText({
+    promedio <- mean(filtered_corruption_year()$value, na.rm = TRUE)
+    round(promedio, 2)
+  })
+  
+  output$corruption_sd_text <- renderText({
+    req(input$corruption_countries)
+    
+    datos <- corruption %>%
+      filter(name %in% input$corruption_countries) %>%
+      pull(value)
+    
+    datos <- datos[!is.na(datos)]
+    
+    if (length(datos) < 2) {
+      return("Sin datos")
+    }
+    
+    round(sd(datos), 2)
+  })
+  
+  output$corruption_evaluation_countries <- renderPlotly({
+    plot_ly(
+      data = filtered_corruption_countries(),
+      x = ~year,
+      y = ~value,
+      type = "bar",
+      color = ~name
+    ) %>%
+      layout(
+        title = "Corrupcion por pais",
+        xaxis = list(title = "Año"),
+        yaxis = list(title = "Indice de corrupcion"),
+        paper_bgcolor = "transparent",
+        plot_bgcolor = "transparent",
+        font = list(color = "#547A95"),
+        template = "plotly_dark"
+      )
+  })
+  
+  output$download_corruption_data <- downloadHandler(
+    filename = function() {
+      "corruption.csv"
+    },
+    content = function(file) {
+      write.csv(corruption, file, row.names = FALSE)
+    }
+  )
+}
+
+server <- function(input, output, session) {
+  introduction(input, output, session)
+  natality(input, output, session)
+  corruption_dashboard(input, output, session)
 }

@@ -42,4 +42,6 @@ replacement_rate_countries= read.csv("Data/replacement_rate_countries.csv") %>%
 
 gdp= unpivot_data(read.csv("Data/gdp_pcap.csv"))
 
+corruption= unpivot_data(read.csv("Data/corruption_perception_index_cpi.csv"))
+
 replacement_rate_countries_gdp= left_join(replacement_rate_countries, gdp, by= c("geo", "year"))
