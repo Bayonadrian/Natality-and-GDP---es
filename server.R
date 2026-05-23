@@ -272,6 +272,60 @@ corruption_dashboard <- function(input, output, session) {
       write.csv(corruption, file, row.names = FALSE)
     }
   )
+  
+  output$corruption_corr_text <- renderText({
+    
+    req(input$corruption_countries)
+    
+    datos_corr <- corruption %>%
+      inner_join(gdp, by = c("name", "year")) %>%
+      filter(name %in% input$corruption_countries)
+    
+    if(nrow(datos_corr) < 2){
+      return("No hay suficientes datos para calcular la correlación")
+    }
+    
+    correlacion <- cor(
+      datos_corr$value.x,
+      datos_corr$value.y,
+      use = "complete.obs"
+    )
+    
+    round(correlacion, 2)
+  })
+  
+  output$corruption_correlation_gdp <- renderPlotly({
+    
+    req(input$corruption_countries)
+    
+    datos_corr <- corruption %>%
+      inner_join(gdp, by = c("name", "year")) %>%
+      filter(name %in% input$corruption_countries)
+    
+    validate(
+      need(nrow(datos_corr) > 1,
+           "Seleccione al menos un país con datos suficientes")
+    )
+    
+    plot_ly(
+      data = datos_corr,
+      x = ~value.x,
+      y = ~value.y,
+      type = "scatter",
+      mode = "markers",
+      color = ~name,
+      text = ~paste("País:", name, "<br>Año:", year)
+    ) %>%
+      layout(
+        title = "Correlación entre corrupción y crecimiento económico",
+        xaxis = list(title = "Índice de corrupción"),
+        yaxis = list(title = "Crecimiento económico"),
+        paper_bgcolor = "transparent",
+        plot_bgcolor = "transparent",
+        font = list(color = "#547A95"),
+        template = "plotly_dark"
+      )
+  })
 }
 
 server <- function(input, output, session) {

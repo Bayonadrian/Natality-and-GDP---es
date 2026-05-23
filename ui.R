@@ -168,34 +168,56 @@ ui <- page_navbar(
           gap = "20px",
           
           card(
-            card_header("Promedio de corrupcion"),
+            card_header("Evaluacion de la corrupcion"),
             card_body(
-              tags$div(
-                textOutput("corruption_mean_text"),
-                style = "font-size: 55px; font-weight: bold; text-align: center; padding-top: 80px;"
-              )
+              layout_columns(
+                col_widths = c(6, 6),
+                
+                card(
+                  card_header("Promedio de corrupcion"),
+                  card_body(
+                    tags$div(
+                      textOutput("corruption_mean_text"),
+                      style = "font-size: 45px; font-weight: bold; text-align: center; padding-top: 60px;"
+                    )
+                  ),
+                  style = "height: 220px;"
+                ),
+                
+                card(
+                  card_header("Desviacion standard de corrupcion"),
+                  card_body(
+                    tags$div(
+                      textOutput("corruption_sd_text"),
+                      style = "font-size: 45px; font-weight: bold; text-align: center; padding-top: 60px;"
+                    )
+                  ),
+                  style = "height: 220px;"
+                )
+              ),
+              
+              plotlyOutput("corruption_evaluation_countries", height = "500px")
             ),
-            style = "height: 250px;"
+            style = "height: 780px;"
           ),
           
           card(
-            card_header("Desviacion standard de corrupcion"),
+            card_header("Correlacion con crecimiento del PBI"),
             card_body(
-              tags$div(
-                textOutput("corruption_sd_text"),
-                style = "font-size: 55px; font-weight: bold; text-align: center; padding-top: 80px;"
-              )
+              card(
+                card_header("Correlacion"),
+                card_body(
+                  tags$div(
+                    textOutput("corruption_corr_text"),
+                    style = "font-size: 48px; font-weight: bold; text-align: center;"
+                  )
+                ),
+                style = "height: 160px; margin-bottom: 20px;"
+              ),
+              
+              plotlyOutput("corruption_correlation_gdp", height = "560px")
             ),
-            style = "height: 250px;"
-          )
-        ),
-        
-        br(),
-        
-        card(
-          card_header("Corrupcion por pais"),
-          card_body(
-            plotlyOutput("corruption_evaluation_countries", height = "500px")
+            style = "height: 780px;"
           )
         )
       )
