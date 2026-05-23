@@ -56,7 +56,7 @@ introduction <- function(input, output, session) {
         p("El presente trabajo plantea 2 ideas principales:"),
         tags$ul(
           tags$li("1. La natalidad es inversamente proporcional al crecimiento economico"),
-          tags$li("2. La corrupcion es directamente proporcional al crecimiento economico")
+          tags$li("2. La corrupcion es inversamente proporcional al crecimiento economico")
         )
       )
     } else {
