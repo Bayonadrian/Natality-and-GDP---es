@@ -1,47 +1,24 @@
-library(shiny)
-library(dplyr)
-library(tidyr)
-library(lubridate)
-library(plotly)
-
-unpivot_data <- function(df) {
-  date_range <- as.character(2012:2023)
-  
-  df %>%
-    pivot_longer(
-      cols = all_of(date_range),
-      names_to = "year",
-      values_to = "value"
-    ) %>%
-    mutate(year = ymd(paste0(year, "-01-01")))
-}
-
-cast_date <- function(df) {
-  df %>%
-    mutate(year = ymd(paste0(year, "-01-01")))
-}
-
-introduction <- function(input, output, session) {
-  
-  content <- reactiveVal("crew")
-  
-  observeEvent(input$members_page, {
-    content("crew")
-  })
-  
-  observeEvent(input$thesis_page, {
-    content("thesis")
-  })
-  
-  observeEvent(input$metadata_page, {
-    content("metadata")
-  })
+server <- function(input, output, session) {
   
   output$introduction <- renderUI({
-    if (content() == "crew") {
+    tagList(
+      h3("Miembros"),
+      p("Miembros del Proyecto:"),
+      tags$ul(
+        tags$li("Luis Flavio Choquenaira Choquenaira"),
+        tags$li("Henry Durand Huamani"),
+        tags$li("Adrian Ronaldo Hermoza Bayona"),
+        tags$li("Ramiro Elard Zea Ponce"),
+        tags$li("Sebastian David Villalba Bouroncle")
+      )
+    )
+  })
+  
+  observeEvent(input$members_page, {
+    output$introduction <- renderUI({
       tagList(
         h3("Miembros"),
-        p("Miembros del proyecto:"),
+        p("Miembros del Proyecto:"),
         tags$ul(
           tags$li("Luis Flavio Choquenaira Choquenaira"),
           tags$li("Henry Durand Huamani"),
@@ -50,67 +27,80 @@ introduction <- function(input, output, session) {
           tags$li("Sebastian David Villalba Bouroncle")
         )
       )
-    } else if (content() == "thesis") {
-      tagList(
-        h3("Tesis"),
-        p("El presente trabajo plantea 2 ideas principales:"),
-        tags$ul(
-          tags$li("1. La natalidad es inversamente proporcional al crecimiento economico"),
-          tags$li("2. La corrupcion es inversamente proporcional al crecimiento economico")
-        )
-      )
-    } else {
-      tagList(
-        h3("Metadata"),
-        h4("Librerias"),
-        tags$ul(
-          tags$li("shiny"),
-          tags$li("bslib"),
-          tags$li("plotly"),
-          tags$li("dplyr"),
-          tags$li("tidyr"),
-          tags$li("lubridate")
-        )
-      )
-    }
+    })
   })
-}
-
-natality <- function(input, output, session) {
+  
+  observeEvent(input$thesis_page, {
+    output$introduction <- renderUI({
+      tagList(
+        h3("Tesis de Investigación"),
+        tags$ol(
+          tags$li(tags$b("Tesis 1:"), " La natalidad es inversamente proporcional al crecimiento económico."),
+          tags$li(tags$b("Tesis 2:"), " La corrupción es inversamente proporcional al crecimiento económico.")
+        )
+      )
+    })
+  })
+  
+  observeEvent(input$analysis_page, {
+    output$introduction <- renderUI({
+      tagList(
+        h3("Análisis de las Tesis de Investigación"),
+        p("Se analiza la relación entre natalidad, crecimiento económico y corrupción entre 2012 y 2023.")
+      )
+    })
+  })
+  
+  observeEvent(input$metadata_page, {
+    output$introduction <- renderUI({
+      tagList(
+        h3("Metadatos y Sustento Técnico"),
+        tags$ul(
+          tags$li("Periodo analizado: 2012 - 2023."),
+          tags$li("Datos: natalidad, PBI per cápita e índice de corrupción."),
+          tags$li("Librerías: shiny, bslib, plotly, dplyr, tidyr, lubridate.")
+        )
+      )
+    })
+  })
   
   filtered_data_countries <- reactive({
     req(input$countries)
-    
     replacement_rate_countries %>%
       filter(name %in% input$countries)
   })
   
   filtered_correlation <- reactive({
     req(input$year)
-    
     replacement_rate_countries_gdp %>%
-      filter(year %in% input$year)
+      filter(year == input$year)
   })
   
-  output$natality_correlation_gdp <- renderPlotly({
-    data_plot <- filtered_correlation() %>%
-      arrange(value.x)
-    
+  output$natality_evaluation <- renderPlotly({
     plot_ly(
-      data = data_plot,
-      x = ~value.x,
-      y = ~value.y,
-      type = "scatter",
-      mode = "markers",
-      color = ~name.x
+      data = replacement_rate_continents,
+      x = ~year,
+      y = ~value,
+      type = "bar",
+      color = ~name
     ) %>%
       layout(
-        title = "Natalidad y PBI per capita",
+        title = "Tasa de reemplazo por continente",
+        xaxis = list(title = "Año"),
+        yaxis = list(title = "Hijos por mujer"),
         paper_bgcolor = "transparent",
         plot_bgcolor = "transparent",
         font = list(color = "#547A95"),
-        xaxis = list(title = "Natalidad"),
-        yaxis = list(title = "PBI per capita")
+        shapes = list(
+          list(
+            type = "line",
+            x0 = 2012,
+            x1 = 2023,
+            y0 = 2.1,
+            y1 = 2.1,
+            line = list(color = "#547A95", dash = "dash")
+          )
+        )
       )
   })
   
@@ -123,18 +113,17 @@ natality <- function(input, output, session) {
       color = ~name
     ) %>%
       layout(
-        title = "Tasa de reemplazo por pais",
+        title = "Tasa de reemplazo por país",
         xaxis = list(title = "Año"),
         yaxis = list(title = "Hijos por mujer"),
         paper_bgcolor = "transparent",
         plot_bgcolor = "transparent",
         font = list(color = "#547A95"),
-        template = "plotly_dark",
         shapes = list(
           list(
             type = "line",
-            x0 = as.character(min(filtered_data_countries()$year)),
-            x1 = as.character(max(filtered_data_countries()$year)),
+            x0 = 2012,
+            x1 = 2023,
             y0 = 2.1,
             y1 = 2.1,
             line = list(color = "#547A95", dash = "dash")
@@ -143,106 +132,88 @@ natality <- function(input, output, session) {
       )
   })
   
-  output$natality_evaluation <- renderPlotly({
+  output$natality_correlation_gdp <- renderPlotly({
+    df <- filtered_correlation() %>%
+      filter(!is.na(value_natality), !is.na(value_gdp))
+    
+    validate(need(nrow(df) > 1, "No hay datos suficientes."))
+    
     plot_ly(
-      data = replacement_rate_continents,
-      x = ~year,
-      y = ~value,
-      type = "bar",
-      color = ~name,
-      colors = c("#C2A56D", "#547A95", "#57595B", "#2C3947")
+      data = df,
+      x = ~value_natality,
+      y = ~value_gdp,
+      type = "scatter",
+      mode = "markers",
+      color = ~name_natality,
+      text = ~paste("País:", name_natality, "<br>Año:", year)
     ) %>%
       layout(
-        title = "Tasa de reemplazo por continente",
-        xaxis = list(title = "Año"),
-        yaxis = list(title = "Hijos por mujer"),
+        title = "Natalidad y PBI per cápita",
+        xaxis = list(title = "Natalidad"),
+        yaxis = list(title = "PBI per cápita"),
         paper_bgcolor = "transparent",
         plot_bgcolor = "transparent",
-        font = list(color = "#547A95"),
-        template = "plotly_dark",
-        shapes = list(
-          list(
-            type = "line",
-            x0 = as.character(min(replacement_rate_continents$year)),
-            x1 = as.character(max(replacement_rate_continents$year)),
-            y0 = 2.1,
-            y1 = 2.1,
-            line = list(color = "#547A95", dash = "dash")
-          )
-        )
+        font = list(color = "#547A95")
       )
   })
   
   output$natality_text <- renderText("2.1")
   
   output$corr_text <- renderText({
-    corr <- cor(
-      filtered_correlation()$value.x,
-      filtered_correlation()$value.y,
-      use = "complete.obs"
-    )
+    df <- filtered_correlation() %>%
+      filter(!is.na(value_natality), !is.na(value_gdp))
     
-    as.character(round(corr, 3))
+    if (nrow(df) < 2) return("Sin datos")
+    
+    round(cor(df$value_natality, df$value_gdp, use = "complete.obs"), 3)
   })
   
   output$download_replacement_data <- downloadHandler(
-    filename = function() {
-      "replacement_rate_gdp.csv"
-    },
+    filename = function() "replacement_rate_gdp.csv",
     content = function(file) {
       write.csv(replacement_rate_countries_gdp, file, row.names = FALSE)
-    }
+    },
+    contentType = "text/csv"
   )
   
   output$download_continent_data <- downloadHandler(
-    filename = function() {
-      "replacement_rate_continents.csv"
-    },
+    filename = function() "replacement_rate_continents.csv",
     content = function(file) {
       write.csv(replacement_rate_continents, file, row.names = FALSE)
-    }
+    },
+    contentType = "text/csv"
   )
-}
-
-corruption_dashboard <- function(input, output, session) {
   
   filtered_corruption_countries <- reactive({
     req(input$corruption_countries)
-    
     corruption %>%
       filter(name %in% input$corruption_countries)
   })
   
   filtered_corruption_year <- reactive({
-    req(input$corruption_year)
-    req(input$corruption_countries)
-    
+    req(input$corruption_year, input$corruption_countries)
     corruption %>%
       filter(
-        year %in% input$corruption_year,
+        year == input$corruption_year,
         name %in% input$corruption_countries
       )
   })
   
   output$corruption_mean_text <- renderText({
-    promedio <- mean(filtered_corruption_year()$value, na.rm = TRUE)
-    round(promedio, 2)
+    df <- filtered_corruption_year()
+    
+    if (nrow(df) == 0 || all(is.na(df$value))) return("Sin datos")
+    
+    round(mean(df$value, na.rm = TRUE), 2)
   })
   
   output$corruption_sd_text <- renderText({
-    req(input$corruption_countries)
+    df <- filtered_corruption_countries()
+    valores <- df$value[!is.na(df$value)]
     
-    datos <- corruption %>%
-      filter(name %in% input$corruption_countries) %>%
-      pull(value)
+    if (length(valores) < 2) return("Sin datos")
     
-    datos <- datos[!is.na(datos)]
-    
-    if (length(datos) < 2) {
-      return("Sin datos")
-    }
-    
-    round(sd(datos), 2)
+    round(sd(valores), 2)
   })
   
   output$corruption_evaluation_countries <- renderPlotly({
@@ -254,82 +225,226 @@ corruption_dashboard <- function(input, output, session) {
       color = ~name
     ) %>%
       layout(
-        title = "Corrupcion por pais",
+        title = "Corrupción por país",
         xaxis = list(title = "Año"),
-        yaxis = list(title = "Indice de corrupcion"),
+        yaxis = list(title = "Índice de corrupción"),
         paper_bgcolor = "transparent",
         plot_bgcolor = "transparent",
-        font = list(color = "#547A95"),
-        template = "plotly_dark"
+        font = list(color = "#547A95")
       )
   })
   
   output$download_corruption_data <- downloadHandler(
-    filename = function() {
-      "corruption.csv"
-    },
+    filename = function() "corruption.csv",
     content = function(file) {
       write.csv(corruption, file, row.names = FALSE)
-    }
+    },
+    contentType = "text/csv"
   )
   
   output$corruption_corr_text <- renderText({
-    
     req(input$corruption_countries)
     
-    datos_corr <- corruption %>%
-      inner_join(gdp, by = c("name", "year")) %>%
-      filter(name %in% input$corruption_countries)
+    df <- corruption_gdp %>%
+      filter(name_corruption %in% input$corruption_countries) %>%
+      filter(!is.na(value_corruption), !is.na(value_gdp))
     
-    if(nrow(datos_corr) < 2){
-      return("No hay suficientes datos para calcular la correlación")
-    }
+    if (nrow(df) < 2) return("Sin datos")
     
-    correlacion <- cor(
-      datos_corr$value.x,
-      datos_corr$value.y,
-      use = "complete.obs"
-    )
-    
-    round(correlacion, 2)
+    round(cor(df$value_corruption, df$value_gdp, use = "complete.obs"), 2)
   })
   
   output$corruption_correlation_gdp <- renderPlotly({
-    
     req(input$corruption_countries)
     
-    datos_corr <- corruption %>%
-      inner_join(gdp, by = c("name", "year")) %>%
-      filter(name %in% input$corruption_countries)
+    df <- corruption_gdp %>%
+      filter(name_corruption %in% input$corruption_countries) %>%
+      filter(!is.na(value_corruption), !is.na(value_gdp))
     
-    validate(
-      need(nrow(datos_corr) > 1,
-           "Seleccione al menos un país con datos suficientes")
-    )
+    validate(need(nrow(df) > 1, "Seleccione países con datos suficientes."))
     
     plot_ly(
-      data = datos_corr,
-      x = ~value.x,
-      y = ~value.y,
+      data = df,
+      x = ~value_corruption,
+      y = ~value_gdp,
       type = "scatter",
       mode = "markers",
-      color = ~name,
-      text = ~paste("País:", name, "<br>Año:", year)
+      color = ~name_corruption,
+      text = ~paste("País:", name_corruption, "<br>Año:", year)
     ) %>%
       layout(
-        title = "Correlación entre corrupción y crecimiento económico",
+        title = "Corrupción y crecimiento económico",
         xaxis = list(title = "Índice de corrupción"),
-        yaxis = list(title = "Crecimiento económico"),
+        yaxis = list(title = "PBI per cápita"),
+        paper_bgcolor = "transparent",
+        plot_bgcolor = "transparent",
+        font = list(color = "#547A95")
+      )
+  })
+  
+  datos_pronostico <- reactive({
+    req(input$forecast_country)
+    
+    df <- replacement_rate_countries %>%
+      filter(name == input$forecast_country)
+    
+    validate(need(nrow(df) >= 2, "No hay datos suficientes para el pronóstico."))
+    
+    modelo <- lm(value ~ year, data = df)
+    
+    historico <- df %>%
+      mutate(tipo = "Histórico")
+    
+    futuro <- data.frame(year = 2024:2030) %>%
+      mutate(
+        value = as.numeric(predict(modelo, newdata = .)),
+        geo = unique(df$geo)[1],
+        name = input$forecast_country,
+        tipo = "Predicción"
+      )
+    
+    resultado <- bind_rows(historico, futuro)
+    attr(resultado, "slope") <- coef(modelo)[2]
+    
+    resultado
+  })
+  
+  output$forecast_plot <- renderPlotly({
+    df <- datos_pronostico()
+    
+    plot_ly(
+      data = df,
+      x = ~year,
+      y = ~value,
+      type = "scatter",
+      mode = "lines+markers",
+      color = ~tipo
+    ) %>%
+      layout(
+        title = paste("Proyección en", input$forecast_country),
+        xaxis = list(title = "Año"),
+        yaxis = list(title = "Hijos por mujer"),
         paper_bgcolor = "transparent",
         plot_bgcolor = "transparent",
         font = list(color = "#547A95"),
-        template = "plotly_dark"
+        shapes = list(
+          list(
+            type = "line",
+            x0 = 2012,
+            x1 = 2030,
+            y0 = 2.1,
+            y1 = 2.1,
+            line = list(color = "#FF6B6B", dash = "dash")
+          )
+        )
       )
   })
-}
-
-server <- function(input, output, session) {
-  introduction(input, output, session)
-  natality(input, output, session)
-  corruption_dashboard(input, output, session)
+  
+  output$trend_text <- renderText({
+    df <- datos_pronostico()
+    paste0(round(attr(df, "slope"), 4), " h/año")
+  })
+  
+  output$year_alert_text <- renderText({
+    df <- datos_pronostico()
+    
+    debajo <- df %>%
+      filter(value < 2.1) %>%
+      arrange(year)
+    
+    if (nrow(debajo) == 0) {
+      "Estable (>2.1)"
+    } else {
+      as.character(debajo$year[1])
+    }
+  })
+  
+  output$global_map_plot <- renderPlotly({
+    req(input$forecast_year_select)
+    
+    df <- replacement_rate_countries %>%
+      filter(year == input$forecast_year_select)
+    
+    validate(need(nrow(df) > 0, "Sin datos para el mapa."))
+    
+    plot_geo(data = df, locations = ~toupper(geo)) %>%
+      add_trace(
+        z = ~value,
+        text = ~name,
+        marker = list(line = list(color = "#FFFFFF", width = 0.3)),
+        colorbar = list(title = "Natalidad")
+      ) %>%
+      layout(
+        geo = list(
+          scope = "world",
+          showframe = FALSE,
+          showcoastlines = TRUE,
+          projection = list(type = "robinson")
+        ),
+        paper_bgcolor = "transparent",
+        plot_bgcolor = "transparent",
+        font = list(color = "#547A95")
+      )
+  })
+  
+  output$natality_boxplot <- renderPlotly({
+    req(input$forecast_year_select, input$forecast_country)
+    
+    df <- replacement_rate_countries %>%
+      filter(year == input$forecast_year_select)
+    
+    pais <- df %>%
+      filter(name == input$forecast_country)
+    
+    p <- plot_ly() %>%
+      add_boxplot(
+        data = df,
+        y = ~value,
+        name = paste("Año", input$forecast_year_select),
+        boxpoints = "outliers"
+      )
+    
+    if (nrow(pais) > 0) {
+      p <- p %>%
+        add_markers(
+          x = paste("Año", input$forecast_year_select),
+          y = pais$value[1],
+          name = input$forecast_country,
+          marker = list(size = 12, symbol = "diamond")
+        )
+    }
+    
+    p %>%
+      layout(
+        title = paste("Rango global vs", input$forecast_country),
+        yaxis = list(title = "Tasa de natalidad"),
+        paper_bgcolor = "transparent",
+        plot_bgcolor = "transparent",
+        font = list(color = "#547A95")
+      )
+  })
+  
+  output$dynamic_bubble_plot <- renderPlotly({
+    df <- replacement_rate_countries_gdp %>%
+      filter(!is.na(value_natality), !is.na(value_gdp))
+    
+    plot_ly(
+      data = df,
+      x = ~value_gdp,
+      y = ~value_natality,
+      frame = ~year,
+      type = "scatter",
+      mode = "markers",
+      color = ~name_natality,
+      text = ~paste("País:", name_natality),
+      showlegend = FALSE
+    ) %>%
+      layout(
+        xaxis = list(title = "PBI per cápita", type = "log"),
+        yaxis = list(title = "Hijos por mujer"),
+        paper_bgcolor = "transparent",
+        plot_bgcolor = "transparent",
+        font = list(color = "#547A95")
+      )
+  })
 }
