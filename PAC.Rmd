@@ -1,0 +1,219 @@
+---
+title: "PAC - Natalidad, PBI y Corrupción"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    theme: cosmo
+---
+
+# Introducción
+
+Este proyecto analiza la relación entre la natalidad, el crecimiento económico y la corrupción usando datos procesados en R. El objetivo es identificar tendencias, correlaciones y posibles patrones entre países durante el periodo 2012-2023.
+
+```{r librerias, message=FALSE, warning=FALSE, echo=FALSE}
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+library(plotly)
+library(lubridate)
+library(purrr)
+```
+
+```{r datos, message=FALSE, warning=FALSE, echo= FALSE}
+unpivot_data <- function(df) {
+  df %>%
+    pivot_longer(
+      cols = matches("^X?20[0-9]{2}$"),
+      names_to = "year",
+      values_to = "value"
+    ) %>%
+    mutate(
+      year = as.numeric(gsub("^X", "", year)),
+      value = as.numeric(value)
+    ) %>%
+    filter(year >= 2012, year <= 2023)
+}
+
+replacement_rate_continents <- read.csv("Data/replacement_rate_continents.csv") %>%
+  rename(
+    year = time,
+    value = Babies.per.woman
+  ) %>%
+  mutate(year = as.numeric(year), value = as.numeric(value)) %>%
+  filter(year >= 2012, year <= 2023)
+
+replacement_rate_countries <- read.csv("Data/replacement_rate_countries.csv") %>%
+  rename(value = Babies.per.women) %>%
+  mutate(year = as.numeric(year), value = as.numeric(value)) %>%
+  filter(year >= 2012, year <= 2023)
+
+gdp <- unpivot_data(read.csv("Data/gdp_pcap.csv"))
+
+corruption <- unpivot_data(read.csv("Data/corruption_perception_index_cpi.csv"))
+
+replacement_rate_countries_gdp <- replacement_rate_countries %>%
+  left_join(
+    gdp,
+    by = c("geo", "year"),
+    suffix = c("_natality", "_gdp")
+  )
+
+corruption_gdp <- corruption %>%
+  inner_join(
+    gdp,
+    by = c("geo", "year"),
+    suffix = c("_corruption", "_gdp")
+  )
+```
+
+# Análisis de natalidad
+
+```{r grafico-natalidad, message=FALSE, warning=FALSE}
+replacement_rate_countries %>%
+  filter(name %in% c("Peru", "Chile", "Colombia", "Argentina", "Brazil")) %>%
+  ggplot(aes(x = year, y = value, color = name)) +
+  geom_line(linewidth = 1) +
+  geom_point() +
+  geom_hline(yintercept = 2.1, linetype = "dashed") +
+  labs(
+    title = "Evolución de la natalidad",
+    x = "Año",
+    y = "Hijos por mujer",
+    color = "País"
+  ) +
+  theme_minimal()
+```
+
+# Natalidad por continente
+
+```{r grafico-continentes, message=FALSE, warning=FALSE}
+ggplot(replacement_rate_continents, aes(x = year, y = value, color = name)) +
+  geom_line(linewidth = 1) +
+  geom_point() +
+  geom_hline(yintercept = 2.1, linetype = "dashed") +
+  labs(
+    title = "Tasa de natalidad por continente",
+    x = "Año",
+    y = "Hijos por mujer",
+    color = "Continente"
+  ) +
+  theme_minimal()
+```
+
+# Relación entre natalidad y PBI
+
+```{r natalidad-pbi, message=FALSE, warning=FALSE}
+df_natalidad_pbi <- replacement_rate_countries_gdp %>%
+  filter(year == 2023) %>%
+  filter(!is.na(value_natality), !is.na(value_gdp))
+
+ggplot(df_natalidad_pbi, aes(x = value_natality, y = value_gdp)) +
+  geom_point(alpha = 0.7) +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(
+    title = "Relación entre natalidad y PBI per cápita en 2023",
+    x = "Natalidad",
+    y = "PBI per cápita"
+  ) +
+  theme_minimal()
+```
+
+```{r correlacion-natalidad-pbi}
+cor_natalidad_pbi <- cor(
+  df_natalidad_pbi$value_natality,
+  df_natalidad_pbi$value_gdp,
+  use = "complete.obs"
+)
+
+cor_natalidad_pbi
+```
+
+# Relación entre corrupción y PBI
+
+```{r corrupcion-pbi, message=FALSE, warning=FALSE}
+df_corrupcion_pbi <- corruption_gdp %>%
+  filter(year == 2023) %>%
+  filter(!is.na(value_corruption), !is.na(value_gdp))
+
+ggplot(df_corrupcion_pbi, aes(x = value_corruption, y = value_gdp)) +
+  geom_point(alpha = 0.7) +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(
+    title = "Relación entre corrupción y PBI per cápita en 2023",
+    x = "Índice de corrupción",
+    y = "PBI per cápita"
+  ) +
+  theme_minimal()
+```
+
+```{r correlacion-corrupcion-pbi}
+cor_corrupcion_pbi <- cor(
+  df_corrupcion_pbi$value_corruption,
+  df_corrupcion_pbi$value_gdp,
+  use = "complete.obs"
+)
+
+cor_corrupcion_pbi
+```
+
+# Modelo estadístico
+
+Se construye un modelo de regresión lineal para evaluar la relación entre natalidad y PBI per cápita.
+
+```{r modelo-natalidad-pbi}
+modelo_natalidad <- lm(value_gdp ~ value_natality, data = df_natalidad_pbi)
+
+summary(modelo_natalidad)
+```
+
+# Pronóstico de natalidad
+
+Ejemplo con Perú:
+
+```{r pronostico, message=FALSE, warning=FALSE}
+pais_foco <- "Peru"
+
+df_pais <- replacement_rate_countries %>%
+  filter(name == pais_foco)
+
+modelo_pronostico <- lm(value ~ year, data = df_pais)
+
+futuro <- data.frame(year = 2024:2030)
+
+predicciones <- futuro %>%
+  mutate(
+    value = predict(modelo_pronostico, newdata = futuro),
+    name = pais_foco,
+    tipo = "Predicción"
+  )
+
+historico <- df_pais %>%
+  mutate(tipo = "Histórico")
+
+df_pronostico <- bind_rows(historico, predicciones)
+
+ggplot(df_pronostico, aes(x = year, y = value, color = tipo)) +
+  geom_line(linewidth = 1) +
+  geom_point() +
+  geom_hline(yintercept = 2.1, linetype = "dashed") +
+  labs(
+    title = paste("Pronóstico de natalidad en", pais_foco),
+    x = "Año",
+    y = "Hijos por mujer",
+    color = "Tipo"
+  ) +
+  theme_minimal()
+```
+
+```text
+https://bayonadrian.shinyapps.io/Natality-and-GDP---es/
+```
+# Integrantes
+
+- Luis Flavio Choquenaira Choquenaira
+- Henry Durand Huamani
+- Adrian Ronaldo Hermoza Bayona
+- Ramiro Elard Zea Ponce
+- Sebastian David Villalba Bouroncle
