@@ -19,9 +19,6 @@ El objetivo es poner a prueba dos ideas clave:
 1. Si una mayor riqueza económica (PBI per cápita) coincide con una caída en las tasas de natalidad.
 2. Cómo afecta la percepción de la corrupción al crecimiento económico según el tipo de país.
 
-## Enlaces del Proyecto
-* **Dashboard en Vivo:** (https://bayonadrian.shinyapps.io/Natality-and-GDP---es/)
-
 ## Estructura del Repositorio
 De acuerdo al desarrollo de nuestra arquitectura en R, los archivos se organizan de la siguiente manera:
 * **`Data/`**: Carpeta con las bases de datos originales extraídas del Banco Mundial y Transparencia Internacional.
